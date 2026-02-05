@@ -1,0 +1,50 @@
+// Prisma schema for ecommerce-service
+// Sprint 12: B2B Customer Accounts
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Sprint 12 - Comptes Clients B2B
+// ============================================
+
+enum UserRole {
+  ADMIN_CLIENT  // Gestion utilisateurs de l'entreprise
+  ACHETEUR      // Création devis + commandes
+  LECTURE       // Consultation uniquement
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  customerRef String   @unique  // Clé de liaison business avec ERP
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  users       User[]
+  
+  @@map("companies")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  keycloakId  String?  @unique  // ID Keycloak pour SSO
+  role        UserRole
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@map("users")
+}

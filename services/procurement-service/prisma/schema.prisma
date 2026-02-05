@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SupplierType {
+  LEASING
+  ENTERPRISE
+  INDIVIDUAL
+}
+
+model ProcurementLot {
+  id                  String   @id @default(uuid())
+  supplierName        String
+  supplierType        SupplierType
+  purchaseDate        DateTime
+  totalUnitsDeclared  Int
+  totalPurchasePrice  Decimal
+  createdAt           DateTime @default(now())
+  items               ProcurementLotItem[]
+
+  @@index([supplierName])
+  @@index([purchaseDate])
+}
+
+model ProcurementLotItem {
+  id            String   @id @default(uuid())
+  lotId         String
+  assetId       String
+  unitCost      Decimal
+  createdAt     DateTime @default(now())
+  lot           ProcurementLot @relation(fields: [lotId], references: [id])
+
+  @@unique([assetId])
+  @@index([lotId])
+}

@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum RmaStatus {
+  CREATED
+  RECEIVED
+  DIAGNOSED
+  RESOLVED
+}
+
+enum ResolutionType {
+  REPAIR
+  REPLACE
+  REFUND
+  SCRAP
+}
+
+model SavTicket {
+  id          String       @id @default(uuid())
+  assetId     String
+  customerRef String
+  issue       String
+  status      TicketStatus
+  createdAt   DateTime     @default(now())
+
+  @@index([assetId])
+  @@index([customerRef])
+  @@index([status])
+}
+
+model Rma {
+  id        String    @id @default(uuid())
+  assetId   String
+  ticketId  String
+  status    RmaStatus
+  createdAt DateTime  @default(now())
+
+  @@index([assetId])
+  @@index([ticketId])
+  @@index([status])
+}
+
+model RmaDiagnosis {
+  id         String         @id @default(uuid())
+  rmaId      String
+  diagnosis  String
+  resolution ResolutionType
+  createdAt  DateTime       @default(now())
+
+  @@index([rmaId])
+}

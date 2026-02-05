@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* ============================================
+   PROINFO MARKET - GLOBAL STYLES
+   Design B2B Premium, Sobre, Technique
+   ============================================ */
+
+/* Theme customization */
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --color-primary-50: #E8EEF4;
+  --color-primary-100: #C5D5E4;
+  --color-primary-200: #9EB9D3;
+  --color-primary-300: #779DC1;
+  --color-primary-400: #5988B4;
+  --color-primary-500: #3B73A7;
+  --color-primary-600: #2F5C86;
+  --color-primary-700: #1E3A5F;
+  --color-primary-800: #152A45;
+  --color-primary-900: #0D1A2B;
+}
+
+/* Base styles */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-white text-gray-900;
+}
+
+/* Headings */
+h1 {
+  @apply text-4xl font-bold tracking-tight text-gray-900;
+}
+
+h2 {
+  @apply text-2xl font-semibold text-gray-900;
+}
+
+h3 {
+  @apply text-xl font-semibold text-gray-900;
+}
+
+h4 {
+  @apply text-lg font-medium text-gray-900;
+}
+
+/* Custom utilities */
+.container-b2b {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section-b2b {
+  @apply py-16 lg:py-20;
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(135deg, #1E3A5F 0%, #2F5C86 100%);
+}
+
+.specs-table {
+  @apply w-full text-sm;
+}
+
+.specs-table tr {
+  @apply border-b border-gray-200;
+}
+
+.specs-table td {
+  @apply py-3;
+}
+
+.specs-table td:first-child {
+  @apply font-medium text-gray-500 w-1/3;
+}
+
+.specs-table td:last-child {
+  @apply text-gray-900;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PickingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum AssemblyStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum ShipmentStatus {
+  READY
+  SHIPPED
+  DELIVERED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  RECEIVED
+  INSPECTED
+}
+
+model PickingOrder {
+  id        String        @id @default(uuid())
+  assetId   String
+  status    PickingStatus
+  createdAt DateTime      @default(now())
+
+  @@index([assetId])
+  @@index([status])
+}
+
+model AssemblyOrder {
+  id        String         @id @default(uuid())
+  assetId   String
+  tasks     Json
+  status    AssemblyStatus
+  createdAt DateTime       @default(now())
+
+  @@index([assetId])
+  @@index([status])
+}
+
+model Shipment {
+  id          String         @id @default(uuid())
+  assetId     String
+  carrier     String
+  trackingRef String?
+  status      ShipmentStatus
+  createdAt   DateTime       @default(now())
+
+  @@index([assetId])
+  @@index([status])
+}
+
+model Return {
+  id        String       @id @default(uuid())
+  assetId   String
+  reason    String
+  status    ReturnStatus
+  createdAt DateTime     @default(now())
+
+  @@index([assetId])
+  @@index([status])
+}

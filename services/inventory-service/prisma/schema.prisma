@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LocationType {
+  RECEIVING
+  STORAGE
+  ASSEMBLY
+  SHIPPING
+}
+
+enum MovementReason {
+  INTAKE
+  MOVE
+  RESERVE
+  RELEASE
+  SHIP
+  RETURN
+}
+
+model Warehouse {
+  id        String     @id @default(uuid())
+  name      String
+  createdAt DateTime   @default(now())
+  locations Location[]
+}
+
+model Location {
+  id          String       @id @default(uuid())
+  warehouseId String
+  code        String
+  type        LocationType
+  createdAt   DateTime     @default(now())
+  warehouse   Warehouse    @relation(fields: [warehouseId], references: [id])
+
+  @@unique([warehouseId, code])
+  @@index([warehouseId])
+}
+
+model InventoryMovement {
+  id           String         @id @default(uuid())
+  assetId      String
+  fromLocation String?
+  toLocation   String?
+  reason       MovementReason
+  createdAt    DateTime       @default(now())
+
+  @@index([assetId])
+  @@index([createdAt])
+}
+
+model InventoryReservation {
+  id        String   @id @default(uuid())
+  assetId   String   @unique
+  orderRef  String
+  createdAt DateTime @default(now())
+
+  @@index([orderRef])
+}

@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RuleType {
+  COMPATIBILITY
+  QUANTITY
+  DEPENDENCY
+  EXCLUSION
+  PRICING
+  LEAD_TIME
+}
+
+model CtoRuleSet {
+  id        String    @id @default(uuid())
+  version   Int
+  active    Boolean
+  createdAt DateTime  @default(now())
+  rules     CtoRule[]
+
+  @@index([active])
+  @@index([version])
+}
+
+model CtoRule {
+  id        String     @id @default(uuid())
+  ruleSetId String
+  ruleType  RuleType
+  payload   Json
+  ruleSet   CtoRuleSet @relation(fields: [ruleSetId], references: [id])
+
+  @@index([ruleSetId])
+  @@index([ruleType])
+}
+
+model CtoConfiguration {
+  id            String   @id @default(uuid())
+  assetId       String
+  configuration Json
+  priceSnapshot Json
+  leadTimeDays  Int
+  ruleSetId     String
+  validated     Boolean
+  createdAt     DateTime @default(now())
+
+  @@index([assetId])
+  @@index([validated])
+}

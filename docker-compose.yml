@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # ==============================================
+  # INFRASTRUCTURE
+  # ==============================================
+  
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: proinfo
+      POSTGRES_PASSWORD: proinfo
+      POSTGRES_DB: proinfo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proinfo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  # ==============================================
+  # SERVICES
+  # ==============================================
+  
+  asset-service:
+    build: ./services/asset-service
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/asset_db
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  procurement-service:
+    build: ./services/procurement-service
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/procurement_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3001:3001"
+    depends_on:
+      - asset-service
+
+  quality-service:
+    build: ./services/quality-service
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/quality_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3002:3002"
+    depends_on:
+      - asset-service
+
+  inventory-service:
+    build: ./services/inventory-service
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/inventory_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3003:3003"
+    depends_on:
+      - asset-service
+
+  wms-service:
+    build: ./services/wms-service
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/wms_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3004:3004"
+    depends_on:
+      - inventory-service
+
+  cto-service:
+    build: ./services/cto-service
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/cto_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3005:3005"
+    depends_on:
+      - asset-service
+
+  ecommerce-backend:
+    build: ./services/ecommerce-service/backend
+    environment:
+      PORT: 3006
+      ASSET_SERVICE_URL: http://asset-service:3000
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      CTO_SERVICE_URL: http://cto-service:3005
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3006:3006"
+    depends_on:
+      - cto-service
+      - inventory-service
+
+  sav-service:
+    build: ./services/sav-service
+    environment:
+      PORT: 3008
+      DATABASE_URL: postgresql://proinfo:proinfo@postgres:5432/sav_db
+      ASSET_SERVICE_URL: http://asset-service:3000
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      QUALITY_SERVICE_URL: http://quality-service:3002
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: proinfo
+    ports:
+      - "3008:3008"
+    depends_on:
+      - quality-service
+
+volumes:
+  postgres_data:

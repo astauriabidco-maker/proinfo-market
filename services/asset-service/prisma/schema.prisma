@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssetType {
+  SERVER
+  WORKSTATION
+  LAPTOP
+}
+
+enum AssetStatus {
+  ACQUIRED
+  IN_REFURB
+  QUALITY_PENDING
+  SELLABLE
+  RESERVED
+  SOLD
+  RMA
+  SCRAPPED
+}
+
+enum AssetGrade {
+  PREMIUM
+  A
+  B
+  C
+}
+
+model Asset {
+  id           String      @id @default(uuid())
+  serialNumber String      @unique
+  assetType    AssetType
+  brand        String
+  model        String
+  chassisRef   String?
+  status       AssetStatus
+  grade        AssetGrade?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  history      AssetStateHistory[]
+}
+
+model AssetStateHistory {
+  id             String      @id @default(uuid())
+  assetId        String
+  previousStatus AssetStatus?
+  newStatus      AssetStatus
+  reason         String?
+  createdAt      DateTime    @default(now())
+  asset          Asset       @relation(fields: [assetId], references: [id])
+
+  @@index([assetId])
+}

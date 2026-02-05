@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssetType {
+  SERVER
+  WORKSTATION
+  LAPTOP
+}
+
+model QualityChecklist {
+  id        String   @id @default(uuid())
+  name      String
+  assetType AssetType
+  version   Int
+  createdAt DateTime @default(now())
+  items     QualityChecklistItem[]
+
+  @@unique([name, assetType, version])
+  @@index([assetType, version])
+}
+
+model QualityChecklistItem {
+  id           String   @id @default(uuid())
+  checklistId  String
+  code         String
+  description  String
+  isBlocking   Boolean
+  checklist    QualityChecklist @relation(fields: [checklistId], references: [id])
+
+  @@unique([checklistId, code])
+  @@index([checklistId])
+}
+
+model QualityResult {
+  id              String   @id @default(uuid())
+  assetId         String
+  checklistItemId String
+  result          String   // PASS | FAIL
+  measuredValue   String?
+  createdAt       DateTime @default(now())
+
+  @@unique([assetId, checklistItemId])
+  @@index([assetId])
+}
+
+model BatteryHealth {
+  assetId       String   @id
+  stateOfHealth Int
+  cycles        Int
+  measuredAt    DateTime @default(now())
+}
