@@ -55,3 +55,36 @@ model BatteryHealth {
   cycles        Int
   measuredAt    DateTime @default(now())
 }
+
+// ============================================
+// QUALITY ANALYTICS (Sprint 18)
+// ============================================
+
+enum QualityAlertType {
+  MODEL
+  SUPPLIER
+  BATCH
+}
+
+model QualityMetric {
+  id        String   @id @default(uuid())
+  key       String   // ex: "RMA_RATE", "TIME_TO_FAILURE", "BLOCKED_RATE"
+  value     Float
+  scope     String   // model / supplier / batch id
+  createdAt DateTime @default(now())
+
+  @@index([key, scope])
+  @@index([createdAt])
+}
+
+model QualityAlert {
+  id        String           @id @default(uuid())
+  type      QualityAlertType
+  scope     String
+  reason    String
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+
+  @@index([type, scope])
+  @@index([active])
+}

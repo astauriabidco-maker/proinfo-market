@@ -282,11 +282,11 @@ describe('AssetService', () => {
                 model: 'R740'
             });
 
-            // Assert - Vérifier que console.log a été appelé avec l'événement
+            // Assert - Vérifier que console.log a été appelé avec l'événement structuré
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('AssetCreated')
+                expect.stringContaining('"message":"AssetCreated"')
             );
+
         });
     });
 });

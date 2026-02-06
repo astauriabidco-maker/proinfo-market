@@ -14,7 +14,11 @@ export class WarehouseRepository {
      */
     async create(dto: CreateWarehouseDto): Promise<WarehouseEntity> {
         const warehouse = await this.prisma.warehouse.create({
-            data: { name: dto.name }
+            data: {
+                name: dto.name,
+                code: dto.code || dto.name.toUpperCase().replace(/\s+/g, '-'),
+                country: dto.country || 'FR'
+            }
         });
         return this.toEntity(warehouse);
     }

@@ -4,7 +4,7 @@ services:
   # ==============================================
   # INFRASTRUCTURE
   # ==============================================
-  
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -12,11 +12,11 @@ services:
       POSTGRES_PASSWORD: proinfo
       POSTGRES_DB: proinfo
     ports:
-      - "5432:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U proinfo"]
+      test: [ "CMD-SHELL", "pg_isready -U proinfo" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -35,7 +35,7 @@ services:
   # ==============================================
   # SERVICES
   # ==============================================
-  
+
   asset-service:
     build: ./services/asset-service
     environment:

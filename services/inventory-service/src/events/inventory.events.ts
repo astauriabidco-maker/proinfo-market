@@ -1,10 +1,11 @@
 /**
  * Inventory Events
- * Émission d'événements domaine (simulation console.log)
+ * Émission d'événements domaine avec logger structuré
  */
 
 import { MovementEntity } from '../domain/movement.types';
 import { ReservationEntity } from '../domain/reservation.types';
+import { logger } from '../utils/logger';
 
 /**
  * Événement : Asset déplacé
@@ -53,36 +54,24 @@ export interface AssetReservationReleasedEvent {
  * Émet l'événement AssetMoved
  */
 export function emitAssetMoved(movement: MovementEntity): void {
-    const event: AssetMovedEvent = {
-        eventType: 'AssetMoved',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            assetId: movement.assetId,
-            fromLocation: movement.fromLocation,
-            toLocation: movement.toLocation,
-            reason: movement.reason,
-            movementId: movement.id
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('AssetMoved', {
+        assetId: movement.assetId,
+        fromLocation: movement.fromLocation,
+        toLocation: movement.toLocation,
+        reason: movement.reason,
+        movementId: movement.id
+    });
 }
 
 /**
  * Émet l'événement AssetReserved
  */
 export function emitAssetReserved(reservation: ReservationEntity): void {
-    const event: AssetReservedEvent = {
-        eventType: 'AssetReserved',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            assetId: reservation.assetId,
-            orderRef: reservation.orderRef,
-            reservationId: reservation.id
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('AssetReserved', {
+        assetId: reservation.assetId,
+        orderRef: reservation.orderRef,
+        reservationId: reservation.id
+    });
 }
 
 /**
@@ -92,11 +81,5 @@ export function emitAssetReservationReleased(
     assetId: string,
     orderRef: string
 ): void {
-    const event: AssetReservationReleasedEvent = {
-        eventType: 'AssetReservationReleased',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: { assetId, orderRef }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('AssetReservationReleased', { assetId, orderRef });
 }

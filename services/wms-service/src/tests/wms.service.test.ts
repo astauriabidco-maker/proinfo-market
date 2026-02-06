@@ -90,8 +90,7 @@ describe('WmsService', () => {
             expect(picking.status).toBe(PickingStatus.PENDING);
             expect(mockInventoryClient.getReservation).toHaveBeenCalledWith('asset-uuid-1');
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('PickingCreated')
+                expect.stringContaining('"message":"PickingCreated"')
             );
         });
 
@@ -140,8 +139,7 @@ describe('WmsService', () => {
                 'MOVE'
             );
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('PickingCompleted')
+                expect.stringContaining('"message":"PickingCompleted"')
             );
         });
     });
@@ -180,8 +178,7 @@ describe('WmsService', () => {
             // Assert
             expect(completedAssembly.status).toBe(AssemblyStatus.COMPLETED);
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('AssemblyCompleted')
+                expect.stringContaining('"message":"AssemblyCompleted"')
             );
         });
     });
@@ -245,8 +242,7 @@ describe('WmsService', () => {
                 'Shipped via WMS'
             );
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('AssetShipped')
+                expect.stringContaining('"message":"AssetShipped"')
             );
         });
 
@@ -306,8 +302,7 @@ describe('WmsService', () => {
                 'RETURN'
             );
             expect(console.log).toHaveBeenCalledWith(
-                '[EVENT]',
-                expect.stringContaining('AssetReturned')
+                expect.stringContaining('"message":"AssetReturned"')
             );
         });
     });

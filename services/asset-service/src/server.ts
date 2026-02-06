@@ -5,8 +5,12 @@
 
 import { PrismaClient } from '@prisma/client';
 import { createApp } from './app';
+import { logger } from './utils/logger';
 
 const PORT = process.env.PORT ?? 3000;
+
+// Configure logger service name
+logger.setServiceName('asset-service');
 
 async function main(): Promise<void> {
     const prisma = new PrismaClient();
@@ -14,29 +18,29 @@ async function main(): Promise<void> {
     try {
         // Vérifier la connexion DB
         await prisma.$connect();
-        console.log('[DB] Connected to PostgreSQL');
+        logger.dbConnected();
 
         // Créer et démarrer l'application
         const app = createApp(prisma);
 
         app.listen(PORT, () => {
-            console.log(`[SERVER] Asset Service running on port ${PORT}`);
+            logger.serverStart(Number(PORT));
         });
 
         // Graceful shutdown
         process.on('SIGINT', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
 
         process.on('SIGTERM', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
     } catch (error) {
-        console.error('[ERROR] Failed to start server:', error);
+        logger.error('STARTUP', 'Failed to start server', { error: String(error) });
         await prisma.$disconnect();
         process.exit(1);
     }

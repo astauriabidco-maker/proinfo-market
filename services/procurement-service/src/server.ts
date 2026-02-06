@@ -5,41 +5,41 @@
 
 import { PrismaClient } from '@prisma/client';
 import { createApp } from './app';
+import { logger } from './utils/logger';
 
 const PORT = process.env.PORT ?? 3001;
+
+logger.setServiceName('procurement-service');
 
 async function main(): Promise<void> {
     const prisma = new PrismaClient();
 
     try {
-        // Vérifier la connexion DB
         await prisma.$connect();
-        console.log('[DB] Connected to PostgreSQL');
+        logger.dbConnected();
+        logger.info('CONFIG', 'Service configuration loaded', {
+            ASSET_SERVICE_URL: process.env.ASSET_SERVICE_URL ?? 'http://localhost:3000'
+        });
 
-        // Afficher la configuration
-        console.log(`[CONFIG] ASSET_SERVICE_URL: ${process.env.ASSET_SERVICE_URL ?? 'http://localhost:3000'}`);
-
-        // Créer et démarrer l'application
         const app = createApp(prisma);
 
         app.listen(PORT, () => {
-            console.log(`[SERVER] Procurement Service running on port ${PORT}`);
+            logger.serverStart(Number(PORT));
         });
 
-        // Graceful shutdown
         process.on('SIGINT', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
 
         process.on('SIGTERM', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
     } catch (error) {
-        console.error('[ERROR] Failed to start server:', error);
+        logger.error('STARTUP', 'Failed to start server', { error: String(error) });
         await prisma.$disconnect();
         process.exit(1);
     }

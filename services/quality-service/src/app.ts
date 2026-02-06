@@ -6,6 +6,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { createQualityRoutes } from './routes/quality.routes';
+import { createQualityAnalyticsRouter } from './routes/qualityAnalytics.routes';
 
 export function createApp(prisma: PrismaClient): Application {
     const app = express();
@@ -20,6 +21,7 @@ export function createApp(prisma: PrismaClient): Application {
 
     // Routes
     app.use('/quality', createQualityRoutes(prisma));
+    app.use('/quality/analytics', createQualityAnalyticsRouter(prisma));
 
     // 404 handler
     app.use((_req: Request, res: Response) => {

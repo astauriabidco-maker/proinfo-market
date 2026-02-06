@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ========== LEGACY ENUMS (v0) ==========
+
 enum PickingStatus {
   PENDING
   IN_PROGRESS
@@ -32,6 +34,24 @@ enum ReturnStatus {
   RECEIVED
   INSPECTED
 }
+
+// ========== SPRINT 17 — WMS AVANCÉ v1 ==========
+
+enum TaskType {
+  PICKING
+  ASSEMBLY
+  QA
+  SHIPPING
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+// ========== LEGACY MODELS (v0) ==========
 
 model PickingOrder {
   id        String        @id @default(uuid())
@@ -75,4 +95,69 @@ model Return {
 
   @@index([assetId])
   @@index([status])
+}
+
+// ========== SPRINT 17 — OPERATOR & TASKS ==========
+
+/// Opérateur WMS (magasinier, préparateur, contrôleur QA)
+model Operator {
+  id        String    @id @default(uuid())
+  name      String
+  badge     String    @unique
+  createdAt DateTime  @default(now())
+  tasks     WmsTask[]
+}
+
+/// Tâche WMS atomique (PICKING, ASSEMBLY, QA, SHIPPING)
+/// Règle : 1 tâche = 1 asset = 1 opérateur = n étapes
+model WmsTask {
+  id         String     @id @default(uuid())
+  assetId    String
+  type       TaskType
+  status     TaskStatus @default(PENDING)
+  operatorId String?
+  operator   Operator?  @relation(fields: [operatorId], references: [id])
+  steps      TaskStep[]
+  scans      ScanLog[]
+  createdAt  DateTime   @default(now())
+  startedAt  DateTime?
+  endedAt    DateTime?
+
+  @@index([assetId])
+  @@index([status])
+  @@index([operatorId])
+  @@index([type, status])
+}
+
+/// Étape de tâche WMS avec scan obligatoire
+/// Règle : Toutes les étapes doivent être complétées pour finaliser la tâche
+model TaskStep {
+  id           String   @id @default(uuid())
+  taskId       String
+  task         WmsTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  stepOrder    Int
+  description  String
+  scanRequired Boolean  @default(true)
+  expectedCode String?
+  scannedCode  String?
+  completed    Boolean  @default(false)
+  completedAt  DateTime?
+
+  @@index([taskId])
+  @@unique([taskId, stepOrder])
+}
+
+/// Log de scan pour traçabilité complète
+/// Règle : Append-only, aucune modification
+model ScanLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      WmsTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  stepId    String?
+  code      String
+  valid     Boolean
+  scannedAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([scannedAt])
 }

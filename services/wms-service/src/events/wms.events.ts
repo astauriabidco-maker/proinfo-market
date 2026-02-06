@@ -1,16 +1,15 @@
 /**
  * WMS Events
- * Émission d'événements domaine (simulation console.log)
+ * Émission d'événements domaine avec logger structuré
+ * 
+ * Sprint 17 — Events pour les tâches WMS
  */
 
-import { PickingOrderEntity } from '../domain/picking.types';
-import { AssemblyOrderEntity } from '../domain/assembly.types';
-import { ShipmentEntity } from '../domain/shipment.types';
-import { ReturnEntity } from '../domain/return.types';
+import { WmsTaskEntity } from '../domain/task.types';
+import { logger } from '../utils/logger';
 
-/**
- * Événement : Picking créé
- */
+// ========== LEGACY EVENTS ==========
+
 export interface PickingCreatedEvent {
     eventType: 'PickingCreated';
     version: '1.0';
@@ -21,9 +20,6 @@ export interface PickingCreatedEvent {
     };
 }
 
-/**
- * Événement : Picking complété
- */
 export interface PickingCompletedEvent {
     eventType: 'PickingCompleted';
     version: '1.0';
@@ -34,9 +30,6 @@ export interface PickingCompletedEvent {
     };
 }
 
-/**
- * Événement : Assemblage complété
- */
 export interface AssemblyCompletedEvent {
     eventType: 'AssemblyCompleted';
     version: '1.0';
@@ -44,13 +37,9 @@ export interface AssemblyCompletedEvent {
     payload: {
         assemblyId: string;
         assetId: string;
-        tasksCount: number;
     };
 }
 
-/**
- * Événement : Asset expédié
- */
 export interface AssetShippedEvent {
     eventType: 'AssetShipped';
     version: '1.0';
@@ -59,12 +48,10 @@ export interface AssetShippedEvent {
         shipmentId: string;
         assetId: string;
         carrier: string;
+        trackingRef: string | null;
     };
 }
 
-/**
- * Événement : Asset retourné
- */
 export interface AssetReturnedEvent {
     eventType: 'AssetReturned';
     version: '1.0';
@@ -76,85 +63,102 @@ export interface AssetReturnedEvent {
     };
 }
 
-/**
- * Émet l'événement PickingCreated
- */
-export function emitPickingCreated(picking: PickingOrderEntity): void {
-    const event: PickingCreatedEvent = {
-        eventType: 'PickingCreated',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            pickingId: picking.id,
-            assetId: picking.assetId
-        }
+// ========== SPRINT 17 EVENTS ==========
+
+export interface TaskStartedEvent {
+    eventType: 'TaskStarted';
+    version: '1.0';
+    timestamp: Date;
+    payload: {
+        taskId: string;
+        assetId: string;
+        type: string;
+        operatorId: string;
     };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
 }
 
-/**
- * Émet l'événement PickingCompleted
- */
-export function emitPickingCompleted(picking: PickingOrderEntity): void {
-    const event: PickingCompletedEvent = {
-        eventType: 'PickingCompleted',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            pickingId: picking.id,
-            assetId: picking.assetId
-        }
+export interface TaskCompletedEvent {
+    eventType: 'TaskCompleted';
+    version: '1.0';
+    timestamp: Date;
+    payload: {
+        taskId: string;
+        assetId: string;
+        type: string;
+        operatorId: string | null;
+        duration: number | null; // in ms
     };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
 }
 
-/**
- * Émet l'événement AssemblyCompleted
- */
-export function emitAssemblyCompleted(assembly: AssemblyOrderEntity): void {
-    const event: AssemblyCompletedEvent = {
-        eventType: 'AssemblyCompleted',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            assemblyId: assembly.id,
-            assetId: assembly.assetId,
-            tasksCount: assembly.tasks.length
-        }
+export interface TaskBlockedEvent {
+    eventType: 'TaskBlocked';
+    version: '1.0';
+    timestamp: Date;
+    payload: {
+        taskId: string;
+        assetId: string;
+        type: string;
+        reason: string;
     };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
 }
 
-/**
- * Émet l'événement AssetShipped
- */
-export function emitAssetShipped(shipment: ShipmentEntity): void {
-    const event: AssetShippedEvent = {
-        eventType: 'AssetShipped',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            shipmentId: shipment.id,
-            assetId: shipment.assetId,
-            carrier: shipment.carrier
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+// ========== LEGACY EMIT FUNCTIONS ==========
+
+export function emitPickingCreated(picking: { id: string; assetId: string }): void {
+    logger.event('PickingCreated', { pickingId: picking.id, assetId: picking.assetId });
 }
 
-/**
- * Émet l'événement AssetReturned
- */
-export function emitAssetReturned(ret: ReturnEntity): void {
-    const event: AssetReturnedEvent = {
-        eventType: 'AssetReturned',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            returnId: ret.id,
-            assetId: ret.assetId,
-            reason: ret.reason
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+export function emitPickingCompleted(picking: { id: string; assetId: string }): void {
+    logger.event('PickingCompleted', { pickingId: picking.id, assetId: picking.assetId });
+}
+
+export function emitAssemblyCompleted(assembly: { id: string; assetId: string }): void {
+    logger.event('AssemblyCompleted', { assemblyId: assembly.id, assetId: assembly.assetId });
+}
+
+export function emitAssetShipped(shipment: { id: string; assetId: string; carrier: string; trackingRef: string | null }): void {
+    logger.event('AssetShipped', {
+        shipmentId: shipment.id,
+        assetId: shipment.assetId,
+        carrier: shipment.carrier,
+        trackingRef: shipment.trackingRef
+    });
+}
+
+export function emitAssetReturned(ret: { id: string; assetId: string; reason: string }): void {
+    logger.event('AssetReturned', { returnId: ret.id, assetId: ret.assetId, reason: ret.reason });
+}
+
+// ========== SPRINT 17 EMIT FUNCTIONS ==========
+
+export function emitTaskStarted(task: WmsTaskEntity): void {
+    logger.event('TaskStarted', {
+        taskId: task.id,
+        assetId: task.assetId,
+        type: task.type,
+        operatorId: task.operatorId
+    });
+}
+
+export function emitTaskCompleted(task: WmsTaskEntity): void {
+    const duration = task.startedAt && task.endedAt
+        ? task.endedAt.getTime() - task.startedAt.getTime()
+        : null;
+
+    logger.event('TaskCompleted', {
+        taskId: task.id,
+        assetId: task.assetId,
+        type: task.type,
+        operatorId: task.operatorId,
+        duration
+    });
+}
+
+export function emitTaskBlocked(task: WmsTaskEntity, reason: string): void {
+    logger.event('TaskBlocked', {
+        taskId: task.id,
+        assetId: task.assetId,
+        type: task.type,
+        reason
+    });
 }

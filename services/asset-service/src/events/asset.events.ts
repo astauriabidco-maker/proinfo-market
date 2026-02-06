@@ -1,10 +1,11 @@
 /**
  * Asset Events
- * Émission d'événements domaine (simulation console.log)
+ * Émission d'événements domaine avec logger structuré
  */
 
 import { AssetEntity } from '../domain/asset.types';
 import { AssetStatus } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 /**
  * Payload de l'événement AssetCreated
@@ -56,8 +57,7 @@ export function emitAssetCreated(asset: AssetEntity): void {
         }
     };
 
-    // Simulation : log console (pas de Kafka dans ce sprint)
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('AssetCreated', event.payload as unknown as Record<string, unknown>);
 }
 
 /**
@@ -84,6 +84,5 @@ export function emitAssetStatusChanged(
         }
     };
 
-    // Simulation : log console (pas de Kafka dans ce sprint)
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('AssetStatusChanged', event.payload as unknown as Record<string, unknown>);
 }

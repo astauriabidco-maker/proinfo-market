@@ -5,38 +5,43 @@
 
 import { PrismaClient } from '@prisma/client';
 import { createApp } from './app';
+import { logger } from './utils/logger';
 
 const PORT = process.env.PORT ?? 3008;
+
+logger.setServiceName('sav-service');
 
 async function main(): Promise<void> {
     const prisma = new PrismaClient();
 
     try {
         await prisma.$connect();
-        console.log('[DB] Connected to PostgreSQL');
-        console.log(`[CONFIG] ASSET_SERVICE_URL: ${process.env.ASSET_SERVICE_URL ?? 'http://localhost:3000'}`);
-        console.log(`[CONFIG] INVENTORY_SERVICE_URL: ${process.env.INVENTORY_SERVICE_URL ?? 'http://localhost:3003'}`);
-        console.log(`[CONFIG] QUALITY_SERVICE_URL: ${process.env.QUALITY_SERVICE_URL ?? 'http://localhost:3002'}`);
+        logger.dbConnected();
+        logger.info('CONFIG', 'Service configuration loaded', {
+            ASSET_SERVICE_URL: process.env.ASSET_SERVICE_URL ?? 'http://localhost:3000',
+            INVENTORY_SERVICE_URL: process.env.INVENTORY_SERVICE_URL ?? 'http://localhost:3003',
+            QUALITY_SERVICE_URL: process.env.QUALITY_SERVICE_URL ?? 'http://localhost:3002'
+        });
 
         const app = createApp(prisma);
 
         app.listen(PORT, () => {
-            console.log(`[SERVER] SAV & RMA Service running on port ${PORT}`);
+            logger.serverStart(Number(PORT));
         });
 
         process.on('SIGINT', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
 
         process.on('SIGTERM', async () => {
-            console.log('[SERVER] Shutting down...');
+            logger.serverShutdown();
             await prisma.$disconnect();
             process.exit(0);
         });
     } catch (error) {
-        console.error('[ERROR] Failed to start server:', error);
+        logger.error('STARTUP', 'Failed to start server', { error: String(error) });
         await prisma.$disconnect();
         process.exit(1);
     }

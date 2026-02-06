@@ -6,6 +6,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { createProcurementRoutes } from './routes/procurement.routes';
+import { createProcurementAnalysisRouter } from './routes/procurementAnalysis.routes';
 
 export function createApp(prisma: PrismaClient): Application {
     const app = express();
@@ -20,6 +21,7 @@ export function createApp(prisma: PrismaClient): Application {
 
     // Routes
     app.use('/procurement', createProcurementRoutes(prisma));
+    app.use('/procurement', createProcurementAnalysisRouter(prisma));
 
     // 404 handler
     app.use((_req: Request, res: Response) => {

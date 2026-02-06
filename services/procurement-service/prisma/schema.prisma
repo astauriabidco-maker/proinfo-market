@@ -13,6 +13,12 @@ enum SupplierType {
   INDIVIDUAL
 }
 
+enum ProcurementDecision {
+  ACCEPT
+  REJECT
+  REVIEW
+}
+
 model ProcurementLot {
   id                  String   @id @default(uuid())
   supplierName        String
@@ -20,11 +26,17 @@ model ProcurementLot {
   purchaseDate        DateTime
   totalUnitsDeclared  Int
   totalPurchasePrice  Decimal
+  model               String?
+  estimatedValue      Decimal?
+  estimatedMargin     Decimal?
+  decision            ProcurementDecision?
+  decisionComment     String?
   createdAt           DateTime @default(now())
   items               ProcurementLotItem[]
 
   @@index([supplierName])
   @@index([purchaseDate])
+  @@index([decision])
 }
 
 model ProcurementLotItem {

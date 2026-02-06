@@ -181,10 +181,11 @@ export class InventoryService {
      * 
      * Étapes STRICTES :
      * 1. Vérifier statut Asset = SELLABLE
-     * 2. Vérifier absence de réservation existante
-     * 3. Créer InventoryReservation
-     * 4. Créer mouvement RESERVE
-     * 5. Émettre événement AssetReserved
+     * 2. Créer InventoryReservation de manière ATOMIQUE (transaction Serializable)
+     * 3. Créer mouvement RESERVE
+     * 4. Émettre événement AssetReserved
+     * 
+     * POINT BLOQUANT AUDIT #2 : Utilise transaction atomique pour éviter race conditions
      */
     async reserveAsset(assetId: string, dto: ReserveAssetDto): Promise<ReservationEntity> {
         // 1. Vérifier le statut de l'asset
@@ -193,16 +194,12 @@ export class InventoryService {
             throw new AssetNotSellableError(assetId, asset.status);
         }
 
-        // 2. Vérifier qu'il n'y a pas de réservation existante
-        const existingReservation = await this.reservationRepository.findByAssetId(assetId);
-        if (existingReservation) {
-            throw new AssetAlreadyReservedError(assetId, existingReservation.orderRef);
-        }
+        // 2. Créer la réservation de manière ATOMIQUE
+        // La méthode createAtomic utilise une transaction Serializable
+        // qui garantit qu'aucun autre processus ne peut réserver le même asset
+        const reservation = await this.reservationRepository.createAtomic(assetId, dto.orderRef);
 
-        // 3. Créer la réservation
-        const reservation = await this.reservationRepository.create(assetId, dto.orderRef);
-
-        // 4. Créer le mouvement RESERVE
+        // 3. Créer le mouvement RESERVE
         const position = await this.movementRepository.getCurrentPosition(assetId);
         await this.movementRepository.create(
             assetId,
@@ -211,11 +208,12 @@ export class InventoryService {
             MovementReason.RESERVE
         );
 
-        // 5. Émettre l'événement
+        // 4. Émettre l'événement
         emitAssetReserved(reservation);
 
         return reservation;
     }
+
 
     /**
      * Libère une réservation

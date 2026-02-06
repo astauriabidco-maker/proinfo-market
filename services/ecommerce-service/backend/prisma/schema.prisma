@@ -48,3 +48,155 @@ model User {
   @@index([companyId])
   @@map("users")
 }
+
+// ============================================
+// Sprint 13 - Devis CTO B2B
+// ============================================
+
+enum QuoteStatus {
+  ACTIVE      // Devis valide, peut être converti
+  EXPIRED     // Devis expiré (> 30 jours)
+  CONVERTED   // Converti en commande
+}
+
+model Quote {
+  id                 String      @id @default(uuid())
+  companyId          String
+  customerRef        String      // Référence client business
+  assetId            String
+  ctoConfigurationId String
+  priceSnapshot      Json        // Snapshot FIGÉ du CTO pricing
+  leadTimeDays       Int
+  status             QuoteStatus @default(ACTIVE)
+  expiresAt          DateTime
+  convertedOrderId   String?     // ID commande si converti
+  createdAt          DateTime    @default(now())
+
+  @@index([companyId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("quotes")
+}
+
+// ============================================
+// Sprint 14 - Options Premium & Garanties
+// ============================================
+
+enum OptionCategory {
+  WARRANTY   // Extensions de garantie
+  SERVICE    // Services industriels
+}
+
+model Option {
+  id          String         @id @default(uuid())
+  name        String
+  category    OptionCategory
+  description String
+  price       Decimal        @db.Decimal(10, 2)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+
+  orderOptions OrderOption[]
+  
+  @@map("options")
+}
+
+model OrderOption {
+  id        String   @id @default(uuid())
+  orderId   String
+  optionId  String
+  price     Decimal  @db.Decimal(10, 2)  // Prix FIGÉ au moment de l'ajout
+  createdAt DateTime @default(now())
+
+  option    Option   @relation(fields: [optionId], references: [id])
+
+  @@index([orderId])
+  @@map("order_options")
+}
+
+// ============================================
+// Sprint 15 - Vente Assistée B2B
+// ============================================
+
+enum SalesActorRole {
+  CLIENT          // Client B2B
+  SALES_INTERNAL  // Commercial interne
+  TECH_INTERNAL   // Support technique interne
+}
+
+model QuoteComment {
+  id        String         @id @default(uuid())
+  quoteId   String
+  author    SalesActorRole
+  message   String
+  createdAt DateTime       @default(now())
+
+  @@index([quoteId])
+  @@map("quote_comments")
+}
+
+model QuoteAttachment {
+  id        String   @id @default(uuid())
+  quoteId   String
+  filename  String
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([quoteId])
+  @@map("quote_attachments")
+}
+
+// ============================================
+// Sprint 16 - Facturation & Paiement B2B
+// ============================================
+
+enum InvoiceStatus {
+  DRAFT     // Brouillon, pas encore émise
+  ISSUED    // Émise, opposable
+  PAID      // Payée intégralement
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER  // Virement bancaire
+  CARD           // Carte bancaire
+  MANUAL         // Paiement manuel (chèque, etc.)
+}
+
+enum PaymentStatus {
+  PENDING    // En attente
+  COMPLETED  // Finalisé
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  orderId       String
+  companyId     String
+  invoiceNumber String        @unique
+  amountTotal   Decimal       @db.Decimal(12, 2)  // Copie exacte du total commande
+  status        InvoiceStatus @default(DRAFT)
+  issuedAt      DateTime?
+  dueAt         DateTime?     // Échéance +30 jours
+  pdfUrl        String?
+  createdAt     DateTime      @default(now())
+
+  payments      Payment[]
+
+  @@index([orderId])
+  @@index([companyId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  method    PaymentMethod
+  status    PaymentStatus @default(PENDING)
+  amount    Decimal       @db.Decimal(12, 2)
+  createdAt DateTime      @default(now())
+
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("payments")
+}

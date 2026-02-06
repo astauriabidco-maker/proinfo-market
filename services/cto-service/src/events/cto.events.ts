@@ -1,9 +1,10 @@
 /**
  * CTO Events
- * Émission d'événements domaine (simulation console.log)
+ * Émission d'événements domaine avec logger structuré
  */
 
 import { CtoConfigurationEntity, CtoValidationError } from '../domain/ctoConfiguration.types';
+import { logger } from '../utils/logger';
 
 /**
  * Événement : CTO validé
@@ -38,33 +39,22 @@ export interface CtoRejectedEvent {
  * Émet l'événement CtoValidated
  */
 export function emitCtoValidated(config: CtoConfigurationEntity): void {
-    const event: CtoValidatedEvent = {
-        eventType: 'CtoValidated',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            configurationId: config.id,
-            assetId: config.assetId,
-            priceTotal: config.priceSnapshot.total,
-            leadTimeDays: config.leadTimeDays,
-            ruleSetId: config.ruleSetId
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('CtoValidated', {
+        configurationId: config.id,
+        assetId: config.assetId,
+        priceTotal: config.priceSnapshot.total,
+        leadTimeDays: config.leadTimeDays,
+        ruleSetId: config.ruleSetId
+    });
 }
 
 /**
  * Émet l'événement CtoRejected
  */
 export function emitCtoRejected(assetId: string, errors: CtoValidationError[]): void {
-    const event: CtoRejectedEvent = {
-        eventType: 'CtoRejected',
-        version: '1.0',
-        timestamp: new Date(),
-        payload: {
-            assetId,
-            errors
-        }
-    };
-    console.log('[EVENT]', JSON.stringify(event, null, 2));
+    logger.event('CtoRejected', {
+        assetId,
+        errors: errors.map(e => ({ rule: e.rule, message: e.message }))
+
+    });
 }

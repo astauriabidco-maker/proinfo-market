@@ -10,6 +10,8 @@ import { LocationType } from '@prisma/client';
  */
 export interface CreateWarehouseDto {
     name: string;
+    code?: string;
+    country?: string;
 }
 
 /**
@@ -25,7 +27,10 @@ export interface CreateLocationDto {
  */
 export interface WarehouseEntity {
     id: string;
+    code?: string;
     name: string;
+    country?: string;
+    active?: boolean;
     createdAt: Date;
     locations?: LocationEntity[];
 }

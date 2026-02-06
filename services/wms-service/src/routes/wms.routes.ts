@@ -6,10 +6,14 @@
 import { Router } from 'express';
 import { WmsController } from '../controllers/wms.controller';
 import { PrismaClient } from '@prisma/client';
+import { createTaskRoutes } from './task.routes';
 
 export function createWmsRoutes(prisma: PrismaClient): Router {
     const router = Router();
     const controller = new WmsController(prisma);
+
+    // === Sprint 17: Task Routes ===
+    router.use('/tasks', createTaskRoutes(prisma));
 
     // === Picking ===
     router.post('/picking', controller.createPickingOrder);
@@ -33,3 +37,4 @@ export function createWmsRoutes(prisma: PrismaClient): Router {
 
     return router;
 }
+
