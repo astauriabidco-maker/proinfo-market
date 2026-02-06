@@ -39,15 +39,71 @@ model CtoRule {
 }
 
 model CtoConfiguration {
-  id            String   @id @default(uuid())
+  id            String        @id @default(uuid())
   assetId       String
   configuration Json
   priceSnapshot Json
   leadTimeDays  Int
   ruleSetId     String
   validated     Boolean
-  createdAt     DateTime @default(now())
+  createdAt     DateTime      @default(now())
+  decisions     CtoDecision[]
 
   @@index([assetId])
   @@index([validated])
+}
+
+// ========== SPRINT 22 — CTO ENGINE AVANCÉ ==========
+
+enum CtoDecisionResult {
+  ACCEPT
+  REJECT
+}
+
+/// Version immuable d'une règle CTO
+/// RÈGLE : Append-only, jamais de modification
+model CtoRuleVersion {
+  id          String      @id @default(uuid())
+  ruleId      String
+  version     Int
+  name        String
+  description String
+  logic       Json        // Logique structurée explicite
+  createdAt   DateTime    @default(now())
+  decisions   CtoDecision[]
+
+  @@unique([ruleId, version])
+  @@index([ruleId])
+  @@index([createdAt])
+}
+
+/// Décision CTO auditée
+/// RÈGLE : Référence exacte des versions de règles utilisées
+model CtoDecision {
+  id               String              @id @default(uuid())
+  configurationId  String
+  configuration    CtoConfiguration    @relation(fields: [configurationId], references: [id])
+  ruleVersionId    String
+  ruleVersion      CtoRuleVersion      @relation(fields: [ruleVersionId], references: [id])
+  result           CtoDecisionResult
+  createdAt        DateTime            @default(now())
+  explanations     CtoDecisionExplanation[]
+
+  @@index([configurationId])
+  @@index([ruleVersionId])
+  @@index([createdAt])
+}
+
+/// Explication lisible d'une décision CTO
+/// Format : humain + machine
+model CtoDecisionExplanation {
+  id          String      @id @default(uuid())
+  decisionId  String
+  decision    CtoDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  code        String      // Code machine (ex: INCOMPATIBLE_CPU_MOTHERBOARD)
+  message     String      // Message humain (ex: "CPU Xeon Gold incompatible avec carte mère rev. B")
+  severity    String      // ERROR / WARNING / INFO
+  createdAt   DateTime    @default(now())
+
+  @@index([decisionId])
 }

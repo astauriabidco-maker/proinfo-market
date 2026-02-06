@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Snapshot figé du dossier machine
+/// RÈGLE STRICTE : Append-only, jamais modifié
+/// Un snapshot = état complet d'un Asset à un instant T
+model AssetDossierSnapshot {
+  id        String   @id @default(uuid())
+  assetId   String
+  payload   Json     // Dossier complet (7 sections)
+  createdAt DateTime @default(now())
+
+  @@index([assetId])
+  @@index([createdAt])
+}

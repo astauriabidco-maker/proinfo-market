@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Méthodologie RSE versionnée
+/// RÈGLE STRICTE : Append-only, jamais modifiée
+/// Une nouvelle version = nouvelle entrée
+model RseMethodology {
+  id          String      @id @default(uuid())
+  version     String      @unique
+  description String
+  sources     String      // ADEME, EPEAT, études publiques
+  factors     Json        // Facteurs de calcul par catégorie
+  createdAt   DateTime    @default(now())
+  metrics     RseMetric[]
+
+  @@index([createdAt])
+}
+
+/// Métrique RSE par Asset
+/// RÈGLE STRICTE : Une métrique = un asset + un type + une méthode
+/// Jamais de recalcul rétroactif
+model RseMetric {
+  id             String          @id @default(uuid())
+  assetId        String
+  metricType     String          // CO2_AVOIDED, WATER_SAVED, MATERIAL_SAVED
+  value          Float
+  unit           String          // kg, L, kg
+  methodologyId  String
+  methodology    RseMethodology  @relation(fields: [methodologyId], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@unique([assetId, metricType, methodologyId])
+  @@index([assetId])
+  @@index([methodologyId])
+  @@index([createdAt])
+}

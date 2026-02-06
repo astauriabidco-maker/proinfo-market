@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Statut d'un contrat
+enum ContractStatus {
+  ACTIVE
+  TERMINATED
+  EXPIRED
+}
+
+/// Statut d'un plan de renouvellement
+enum RenewalStatus {
+  PLANNED
+  NOTIFIED
+  EXECUTED
+  CANCELLED
+}
+
+/// Statut d'une reprise
+enum TakebackStatus {
+  INITIATED
+  COLLECTED
+  DATA_WIPED
+  RECEIVED_WMS
+  COMPLETED
+}
+
+/// Contrat pluriannuel
+/// RÈGLE : ARR déclaré explicitement, pas de recalcul auto
+model Contract {
+  id            String          @id @default(uuid())
+  companyId     String
+  companyName   String
+  startDate     DateTime
+  endDate       DateTime
+  arrAmount     Decimal         // ARR déclaré, pas calculé
+  status        ContractStatus  @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  assets        ContractAsset[]
+  renewals      RenewalPlan[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([endDate])
+}
+
+/// Assets couverts par un contrat
+model ContractAsset {
+  id          String   @id @default(uuid())
+  contractId  String
+  assetId     String
+  serialNumber String?
+  assetType   String?
+  addedAt     DateTime @default(now())
+
+  contract    Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([contractId, assetId])
+  @@index([assetId])
+}
+
+/// Plan de renouvellement
+/// RÈGLE : Proposition, pas obligation
+model RenewalPlan {
+  id              String        @id @default(uuid())
+  contractId      String
+  plannedDate     DateTime
+  status          RenewalStatus @default(PLANNED)
+  notifiedAt90    DateTime?     // J-90
+  notifiedAt60    DateTime?     // J-60
+  notifiedAt30    DateTime?     // J-30
+  executedAt      DateTime?
+  executedBy      String?
+  createdAt       DateTime      @default(now())
+
+  contract        Contract      @relation(fields: [contractId], references: [id])
+  takebacks       TakebackOrder[]
+
+  @@index([contractId])
+  @@index([plannedDate])
+  @@index([status])
+}
+
+/// Ordre de reprise
+/// RÈGLE : Traçabilité COMPLÈTE
+model TakebackOrder {
+  id                String        @id @default(uuid())
+  renewalId         String
+  assetId           String
+  serialNumber      String?
+  status            TakebackStatus @default(INITIATED)
+  collectedAt       DateTime?
+  dataWipeConfirmed Boolean       @default(false)
+  dataWipedAt       DateTime?
+  receivedWmsAt     DateTime?
+  completedAt       DateTime?
+  trackingNumber    String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  renewal           RenewalPlan   @relation(fields: [renewalId], references: [id])
+
+  @@index([renewalId])
+  @@index([assetId])
+  @@index([status])
+}
+
+/// Événements pour audit
+model SubscriptionEvent {
+  id          String   @id @default(uuid())
+  eventType   String   // ContractCreated, RenewalPlanned, etc.
+  entityType  String   // Contract, RenewalPlan, TakebackOrder
+  entityId    String
+  companyId   String
+  data        String?  // JSON payload
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([companyId])
+  @@index([createdAt])
+}

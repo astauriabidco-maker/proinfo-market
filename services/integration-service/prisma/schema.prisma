@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Client API intégration
+/// RÈGLE : Une ApiKey = une entreprise, pas de partage
+model ApiClient {
+  id          String    @id @default(uuid())
+  name        String
+  companyId   String
+  apiKey      String    @unique
+  scopes      String    // "read:assets,read:rse,write:sav"
+  active      Boolean   @default(true)
+  rateLimit   Int       @default(1000)  // req/hour
+  createdAt   DateTime  @default(now())
+  lastAccess  DateTime?
+
+  @@index([companyId])
+  @@index([apiKey])
+}
+
+/// Abonnement webhook
+/// RÈGLE : Secret HMAC par abonnement
+model WebhookSubscription {
+  id          String   @id @default(uuid())
+  companyId   String
+  event       String   // ASSET_SHIPPED, RMA_CREATED, RMA_RESOLVED, INVOICE_ISSUED
+  targetUrl   String
+  secret      String   // Pour signature HMAC
+  active      Boolean  @default(true)
+  failCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+  @@index([event])
+}
+
+/// Log d'accès API
+/// RÈGLE : Traçabilité horodatée
+model ApiAccessLog {
+  id          String   @id @default(uuid())
+  clientId    String
+  companyId   String
+  endpoint    String
+  method      String
+  statusCode  Int
+  createdAt   DateTime @default(now())
+
+  @@index([clientId])
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+/// Mapping externe client (assetTag ↔ assetId)
+/// Pour synchronisation ERP/ITSM
+model ExternalMapping {
+  id            String   @id @default(uuid())
+  companyId     String
+  externalRef   String   // assetTag client
+  internalRef   String   // assetId ProInfo
+  entityType    String   // ASSET, TICKET, ORDER
+  createdAt     DateTime @default(now())
+
+  @@unique([companyId, externalRef, entityType])
+  @@index([companyId])
+  @@index([internalRef])
+}
+
+/// Log de dispatch webhook
+/// RÈGLE : Traçabilité COMPLÈTE de chaque tentative
+model WebhookDispatchLog {
+  id              String   @id @default(uuid())
+  subscriptionId  String
+  companyId       String
+  event           String
+  targetUrl       String
+  attempt         Int      // Numéro de tentative (1, 2, 3...)
+  success         Boolean
+  statusCode      Int?
+  errorMessage    String?
+  payloadHash     String   // Hash du payload pour audit
+  dispatchedAt    DateTime @default(now())
+
+  @@index([subscriptionId])
+  @@index([companyId])
+  @@index([dispatchedAt])
+}

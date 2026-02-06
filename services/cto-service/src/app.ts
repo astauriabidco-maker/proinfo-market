@@ -6,6 +6,9 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { createCtoRoutes } from './routes/cto.routes';
+import { createCtoRulesRoutes } from './routes/cto.rules.routes';
+import { createCtoDecisionsRoutes } from './routes/cto.decisions.routes';
+import { createCtoSimulationRoutes } from './routes/cto.simulation.routes';
 
 export function createApp(prisma: PrismaClient): Application {
     const app = express();
@@ -18,8 +21,13 @@ export function createApp(prisma: PrismaClient): Application {
         res.status(200).json({ status: 'ok', service: 'cto-service' });
     });
 
-    // Routes
+    // Routes existantes
     app.use('/cto', createCtoRoutes(prisma));
+
+    // Sprint 22 — CTO Engine Avancé
+    app.use('/cto/rules', createCtoRulesRoutes(prisma));
+    app.use('/cto/decisions', createCtoDecisionsRoutes(prisma));
+    app.use('/cto/simulate', createCtoSimulationRoutes(prisma));
 
     // 404 handler
     app.use((_req: Request, res: Response) => {

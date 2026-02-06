@@ -1,131 +1,142 @@
-# CTO Engine v1
-
-Moteur de configuration **déterministe** pour serveurs refurbished.
+# CTO Engine — Sprint 22
 
 ## Philosophie
 
-> **Le CTO valide, il ne décide pas.**
+Le CTO Engine est le cœur de la validation des configurations informatiques. Il doit être :
 
-Ce moteur applique des règles strictement stockées en base. Il ne prend aucune décision métier.
+- **Déterministe** : même entrée = même sortie, toujours
+- **Versionné** : chaque règle est immuable, une modification crée une nouvelle version
+- **Auditable** : chaque décision est tracée avec explications
+- **Opposable** : reproductible dans le temps pour audit client/interne
 
-## Structure
+## Garanties Contractuelles
+
+### ❌ Ce que le CTO Engine ne fait JAMAIS
+
+1. **Pas d'IA générative** — Toute logique est explicite
+2. **Pas de probabilités** — Décisions binaires ACCEPT/REJECT
+3. **Pas de modification rétroactive** — Append-only
+4. **Pas de recalcul** — Une config validée reste figée
+
+### ✅ Ce que le CTO Engine garantit
+
+1. **Traçabilité complète** — Chaque décision référence sa version de règle
+2. **Explications lisibles** — Machine ET humain
+3. **Reproductibilité** — Config de 2026 explicable en 2030
+4. **Simulation sûre** — What-if sans effet de bord
+
+## Architecture
 
 ```
-services/cto-service/
-├── prisma/schema.prisma
-├── src/
-│   ├── app.ts
-│   ├── server.ts                           # Port 3005
-│   ├── routes/cto.routes.ts
-│   ├── controllers/cto.controller.ts
-│   ├── services/
-│   │   ├── ctoValidation.service.ts
-│   │   ├── ctoPricing.service.ts
-│   │   └── ctoLeadTime.service.ts
-│   ├── rules/
-│   │   ├── rule.types.ts
-│   │   └── rule.engine.ts
-│   ├── repositories/
-│   │   ├── rule.repository.ts
-│   │   └── configuration.repository.ts
-│   ├── domain/
-│   │   ├── ctoConfiguration.types.ts
-│   │   └── pricing.types.ts
-│   ├── integrations/
-│   │   ├── inventory.client.ts
-│   │   └── asset.client.ts
-│   ├── events/cto.events.ts
-│   └── tests/cto.service.test.ts
-└── package.json
+cto-service/
+├── domain/
+│   ├── ctoRule.types.ts         # Règles versionnées
+│   ├── ctoDecision.types.ts     # Décisions auditables
+│   └── ctoSimulation.types.ts   # Simulation éphémère
+├── services/
+│   ├── ctoRuleEngine.service.ts      # Moteur d'évaluation
+│   ├── ctoDecisionAudit.service.ts   # Audit des décisions
+│   └── ctoSimulation.service.ts      # What-if (read-only)
+└── routes/
+    ├── cto.rules.routes.ts      # CRUD règles versionnées
+    ├── cto.decisions.routes.ts  # Audit API
+    └── cto.simulation.routes.ts # POST /cto/simulate
 ```
 
-## Types de Règles
+## API Endpoints
 
-| Type | Description |
-|------|-------------|
-| `COMPATIBILITY` | CPU autorisés pour un modèle |
-| `QUANTITY` | Min/max composants |
-| `DEPENDENCY` | Si X alors besoin de Y |
-| `EXCLUSION` | X et Y mutuellement exclusifs |
-| `PRICING` | Prix unitaire + labor + marge |
-| `LEAD_TIME` | Temps assemblage par composant |
-
-## Workflow de Validation
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant CTO
-    participant Asset
-    participant Rules
-
-    Client->>CTO: POST /cto/validate
-    CTO->>Asset: GET /assets/{id}
-    alt status ≠ SELLABLE
-        CTO-->>Client: ❌ 422 AssetNotSellableError
-    end
-    CTO->>Rules: Load active RuleSet
-    CTO->>CTO: Evaluate COMPATIBILITY
-    CTO->>CTO: Evaluate QUANTITY
-    CTO->>CTO: Evaluate DEPENDENCY
-    CTO->>CTO: Evaluate EXCLUSION
-    alt Any rule fails
-        CTO-->>Client: ❌ 422 InvalidConfiguration
-    end
-    CTO->>CTO: Calculate Price Snapshot (FROZEN)
-    CTO->>CTO: Calculate Lead Time
-    CTO->>CTO: Create CtoConfiguration
-    CTO-->>Client: ✅ 201 + Assembly Order
-```
-
-## Prix FIGÉ
-
-Le prix est un **snapshot** calculé une seule fois :
-
-```json
-{
-  "priceSnapshot": {
-    "components": [...],
-    "laborCost": 50,
-    "subtotal": 2000,
-    "margin": 369,
-    "total": 2419,
-    "currency": "EUR",
-    "frozenAt": "2026-02-04T23:00:00Z"
-  }
-}
-```
-
-❌ Le prix n'est **JAMAIS** recalculé après validation.
-
-## API
+### Règles
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| `POST` | `/cto/validate` | Valider une configuration |
-| `GET` | `/cto/configurations/:id` | Récupérer une config validée |
-| `GET` | `/cto/configurations/:id/price` | Récupérer le prix FIGÉ |
+| GET | `/cto/rules` | Liste règles actives |
+| POST | `/cto/rules` | Nouvelle version règle |
+| GET | `/cto/rules/:id/versions` | Historique versions |
 
-## Configuration
+### Audit
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/cto_db
-INVENTORY_SERVICE_URL=http://localhost:3003
-ASSET_SERVICE_URL=http://localhost:3000
-PORT=3005
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/cto/decisions/:configId` | Audit complet |
+
+### Simulation
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/cto/simulate` | What-if (non persisté) |
+
+## Modèle de Données
+
+```prisma
+model CtoRuleVersion {
+  id        String   @id
+  ruleId    String
+  version   Int
+  logic     Json     // Logique explicite
+  // Append-only : jamais modifié
+}
+
+model CtoDecision {
+  id              String
+  configurationId String
+  ruleVersionId   String  // Référence exacte
+  result          ACCEPT | REJECT
+  explanations    CtoDecisionExplanation[]
+}
 ```
 
 ## Tests
 
+5 tests obligatoires validés :
+
+1. ✅ `should_version_rules_without_overwrite`
+2. ✅ `should_audit_decisions_with_rule_versions`
+3. ✅ `should_explain_rejected_configuration`
+4. ✅ `should_not_recalculate_validated_configuration`
+5. ✅ `should_simulate_what_if_without_side_effect`
+
+## Exemple d'Utilisation
+
+### Créer une règle
+
 ```bash
-npm test
+POST /cto/rules
+{
+  "ruleId": "CPU_MOTHERBOARD_COMPAT",
+  "name": "CPU Motherboard Compatibility",
+  "description": "Xeon Gold requires Z690 or newer",
+  "logic": {
+    "type": "COMPATIBILITY",
+    "conditions": [
+      { "field": "component.reference", "operator": "CONTAINS", "value": "Xeon-Gold" }
+    ],
+    "action": "BLOCK",
+    "message": "CPU Xeon Gold incompatible avec carte mère {value}"
+  }
+}
 ```
 
-## Limites v1
+### Simuler un changement
 
-- Pas d'UI
-- Pas de paiement
-- Pas de modification des règles via API
-- Pas d'optimisation heuristique
-- Pas de suggestion de "meilleure config"
-- Événements en console.log
+```bash
+POST /cto/simulate
+{
+  "baseConfigurationId": "config-123",
+  "components": [
+    { "type": "RAM", "reference": "128GB-ECC", "quantity": 4 }
+  ]
+}
+```
+
+Réponse :
+```json
+{
+  "success": true,
+  "_notice": "⚠️ SIMULATION ONLY - Not persisted",
+  "data": {
+    "valid": true,
+    "rulesPassed": ["CPU Compatibility", "RAM Requirements"],
+    "rulesFailed": []
+  }
+}
+```
